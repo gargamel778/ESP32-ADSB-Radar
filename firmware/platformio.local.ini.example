@@ -1,0 +1,5 @@
+; Copy to platformio.local.ini (not committed) and set the serial port of the radar (the USB-C connector labelled UART).
+; macOS: ls /dev/cu.*    Linux: /dev/ttyUSB0    Windows: COM5.  Without it PlatformIO picks a port by itself, which may be the wrong one.
+[env:viewe7]
+upload_port = /dev/cu.wchusbserial0000000
+monitor_port = /dev/cu.wchusbserial0000000

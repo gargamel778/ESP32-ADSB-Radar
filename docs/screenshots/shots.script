@@ -1,0 +1,69 @@
+# The sequence that took the radar pictures in this folder: python3 tools/devtools/radar_serial.py run docs/screenshots/shots.script   (about 30 minutes)
+# Run it from the repository root, on a radar with the test firmware and Flights Data switched on (test key and e-mail): see README.md next to this file.
+# The radar restarts when the port is opened; the script waits for it. Nothing is saved while the demo place is active.
+send Y51.5080,-0.1281,London,GB,Europe/London,GMT0BST,M3.5.0/1,M10.5.0
+sleep 45
+shot docs/screenshots/radar-overview.png 0 0 800 480 1
+# the second table row: the card with the stand-in's flight details and photo (wait for the look-ups, then take the picture)
+send X520,84
+sleep 25
+shot docs/screenshots/radar-card.png 0 0 800 480 1
+# tap the card to get the table back, open Settings, one picture per tab
+send X600,300
+send X440,440
+sleep 2
+send X90,90
+sleep 2
+shot docs/screenshots/settings-radar.png 0 0 800 480 1
+send X90,136
+sleep 2
+shot docs/screenshots/settings-units.png 0 0 800 480 1
+send X90,184
+sleep 2
+shot docs/screenshots/settings-look.png 0 0 800 480 1
+send X90,232
+sleep 2
+shot docs/screenshots/settings-location.png 0 0 800 480 1
+send X90,324
+sleep 2
+shot docs/screenshots/settings-flights.png 0 0 800 480 1
+# the key keyboard (empty), then Cancel
+send X684,152
+sleep 2
+shot docs/screenshots/keyboard-key.png 0 0 800 480 1
+send X726,30
+sleep 2
+send X90,374
+sleep 2
+shot docs/screenshots/settings-log.png 0 0 800 480 1
+send X90,422
+sleep 2
+shot docs/screenshots/settings-system.png 0 0 800 480 1
+# Done, then an emergency on the nearest aircraft (E3 = 7700)
+send X726,30
+sleep 2
+send E3
+sleep 6
+shot docs/screenshots/radar-emergency.png 0 0 800 480 1
+send E0
+# the emergency overrides night mode for two more minutes after it ends: wait, then night mode on (n: off, auto, on)
+sleep 130
+send n
+send n
+sleep 5
+shot docs/screenshots/radar-night.png 0 0 800 480 1
+send n
+# the card without FlightAware: Settings > Flights Data > switch it off, Done, tap the second row
+send X440,440
+sleep 2
+send X90,324
+sleep 2
+send X745,98
+sleep 2
+send X726,30
+sleep 2
+send X520,84
+sleep 15
+shot docs/screenshots/radar-card-nophoto.png 0 0 800 480 1
+# plain restart: forgets the demo place and everything changed during the session
+send R

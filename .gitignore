@@ -1,0 +1,22 @@
+# --- never commit: this computer's / this owner's data ---
+config/secrets.h
+firmware/platformio.local.ini
+hardware-tests/diag/platformio.local.ini
+tools/pii_denylist.txt
+backup/
+
+# --- build output and files PlatformIO / ESP-IDF generate (a first build recreates them, see docs/BUILDING.md) ---
+.pio/
+.vscode/
+.DS_Store
+firmware/managed_components/
+firmware/.dummy/
+firmware/sdkconfig.defaults
+firmware/sdkconfig.viewe7
+hardware-tests/diag/managed_components/
+hardware-tests/diag/.dummy/
+
+# --- local scratch ---
+dist/
+tests/host/build/
+__pycache__/

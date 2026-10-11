@@ -1,0 +1,229 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>ADS-B Radar</title>
+<style>
+:root{--bg:#050a06;--card:#0c1a10;--line:#1d3a24;--fg:#d8f5de;--dim:#7da988;--acc:#27e05a;--bad:#ff6a5a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,sans-serif}
+header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+h1{font-size:18px;margin:0;color:var(--acc)}main{max-width:640px;margin:0 auto;padding:4px 12px 40px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:14px 0}
+h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:2px 0 6px}
+label{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+h2+label{border-top:0}
+select,input,button{font:inherit;color:var(--fg);background:#07120a;border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+input[type=text],input[type=password],input[type=number],select{width:56%}
+input[type=checkbox]{width:22px;height:22px;accent-color:var(--acc)}
+button{background:#103a1c;border-color:var(--acc);cursor:pointer}button.sec{background:#07120a;border-color:var(--line)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 2px}.dim{color:var(--dim);font-size:14px}.bad{color:var(--bad)}.ok{color:var(--acc)}
+#login{max-width:340px;margin:60px auto;text-align:center}#login input{width:100%;margin:10px 0;text-align:center;font-size:22px;letter-spacing:.3em}
+#hits button{display:block;width:100%;text-align:left;margin:4px 0}#map{height:300px;border-radius:8px;margin-top:8px}
+.dot{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid #fff4;vertical-align:-2px;margin-right:6px}
+</style></head><body>
+<header><h1>ADS-B Radar</h1><span class=dim id=top></span></header>
+<p id=boot class=dim style="padding:16px">Loading...</p>
+<script>setTimeout(function(){var b=document.getElementById("boot");if(b&&!b.hidden)b.innerHTML="The page did not load completely. <a href=/ style=color:#27e05a>Reload</a>"},5000)</script>
+<div id=login hidden><h2>Enter the PIN shown on the radar</h2><p class=dim>Settings &rsaquo; Wi-Fi &rsaquo; Web interface</p>
+<input id=pin type=password inputmode=numeric maxlength=6 autocomplete=off><button onclick=login()>Unlock</button><p id=lmsg class=bad></p></div>
+<main id=app hidden>
+<section><h2>Status</h2>
+<p id=emerg class=bad hidden style="font-weight:600"></p>
+<label>Network<span id=sNet></span></label><label>Aircraft in range<span id=sAc></span></label><label>Free memory<span id=sMem></span></label>
+<label>Sweep<span><button class=sec id=bPause onclick=pause()>Pause</button></span></label></section>
+
+<section><h2>Radar</h2>
+<label>Range<select id=range onchange="set({rangeStep:+this.value})"></select></label>
+<label>Sweep trail<select id=trail onchange="set({trail:+this.value})"><option>15<option>25<option>40<option>60</select></label>
+<label>Brightness<input id=bri type=range min=10 max=100 step=10 onchange="set({brightness:+this.value})"></label>
+<label>Night mode<select id=nmode onchange="set({nightMode:+this.value})"><option value=0>Off<option value=1>Auto (sun down here)<option value=2>On</select></label>
+<label>Night brightness<input id=nbri type=range min=2 max=100 step=1 onchange="set({nightBright:+this.value})"></label>
+<label>Show diagnostics<input id=diag type=checkbox onchange="set({showDiag:this.checked})"></label>
+<label>Map overlay (coasts, borders, airports)<input id=mapov type=checkbox onchange="set({mapOverlay:this.checked})"></label></section>
+
+<section><h2>Flight details</h2>
+<p class=dim>For the aircraft you tap on the radar: take-off and arrival time, the flown track and a photo. Times and track come from FlightAware (your AeroAPI key, from flightaware.com/aeroapi/portal; FlightAware bills per lookup, a few for each aircraft you select, at most 60 an hour here). Photos come from Planespotters and need a contact e-mail address.</p>
+<label>Enabled<input id=fae type=checkbox onchange="set({faEnabled:this.checked})"></label>
+<label>AeroAPI key<input id=fakey type=password autocomplete=off autocapitalize=off autocorrect=off spellcheck=false placeholder="not set"></label>
+<label>Contact e-mail<input id=faem type=email autocomplete=off autocapitalize=off placeholder="you@example.com"></label>
+<label>Plane photo<input id=fap type=checkbox onchange="set({faPhoto:this.checked})"></label>
+<label>Flight track on the radar<input id=fat type=checkbox onchange="set({faTrack:this.checked})"></label>
+<div class=row><button onclick=faSave()>Save key &amp; e-mail</button><button class=sec onclick=faTest()>Test key</button><button class=sec onclick=faClear()>Remove key</button><span id=faMsg></span></div>
+<p class=dim id=faStat></p></section>
+
+<section><h2>SD card log</h2>
+<p class=dim id=sdNow></p>
+<label>Log sightings<input id=sdlog type=checkbox onchange="set({sdLog:this.checked})"></label>
+<label>Per aircraft, at most every<select id=logsecs onchange="set({logSecs:+this.value})"><option value=10>10 s<option value=30>30 s<option value=60>60 s</select></label>
+<div class=row><button class=sec id=sdbtn onclick=sdAct()>Eject card</button></div>
+<p class=dim>One CSV per day (UTC) and a system log in /adsb on the card. The oldest files are deleted when less than 10 % is free.</p></section>
+
+<section><h2>Look</h2>
+<label>Font<select id=theme onchange="set({theme:+this.value})"></select></label>
+<label>Radar color<select id=p0 onchange=pal()></select></label>
+<label>Titles color<select id=p1 onchange=pal()></select></label>
+<label>Callsign color<select id=p2 onchange=pal()></select></label>
+<label>Value color<select id=p3 onchange=pal()></select></label>
+<label>Lines &amp; buttons color<select id=p4 onchange=pal()></select></label></section>
+
+<section><h2>Units</h2>
+<label>Follow country<input id=uauto type=checkbox onchange="set({unitsAuto:this.checked})"></label>
+<label>Distance<select id=dist onchange="set({dist:+this.value})"></select></label>
+<label>Altitude<select id=alt onchange="set({alt:+this.value})"></select></label>
+<label>Speed<select id=spd onchange="set({spd:+this.value})"></select></label>
+<label>24-hour clock<input id=c24 type=checkbox onchange="set({clock24:this.checked})"></label></section>
+
+<section><h2>Location</h2>
+<p class=dim id=locNow></p>
+<label>Find a place<input id=q type=search placeholder="city name" autocomplete=off oninput=findSoon()></label>
+<div id=hits></div>
+<div class=row><button onclick=useMyLocation()>Use this device's location</button><button class=sec onclick=toggleMap()>Pick on map</button></div>
+<div id=mapbox hidden><div id=map></div><p class=dim>Tap the map to place the radar. The map needs internet access on this device. &copy; OpenStreetMap contributors</p></div>
+<label>Name<input id=place type=text maxlength=22></label>
+<label>Latitude<input id=lat type=number step=any oninput=previewSoon()></label>
+<label>Longitude<input id=lon type=number step=any oninput=previewSoon()></label>
+<p class=dim id=detect></p>
+<label>Country<select id=ccsel><option value=auto>Automatic</option></select></label>
+<label>Time zone<select id=tzsel><option value=auto>Automatic</option></select></label>
+<div class=row><button onclick=saveLoc()>Save location</button><span class=dim id=locMsg></span></div>
+<p class=dim>Country and time zone follow the location unless you pick one here. The country sets the default units. Place data: GeoNames (CC-BY 4.0).</p></section>
+
+<section><h2>Wi-Fi</h2>
+<p class=dim id=apNote></p>
+<div class=row><button onclick=scan()>Scan networks</button><span class=dim id=scanMsg></span></div>
+<label>Found networks<select id=nets onchange=netPick()><option value="">Press Scan first</option></select></label>
+<label>Network name<input id=ssid type=text maxlength=32 placeholder="pick one above, or type" autocapitalize=off autocorrect=off spellcheck=false></label>
+<label>Password<input id=wpass type=password maxlength=64 autocomplete=new-password></label>
+<p class=dim id=openNote></p>
+<div class=row><button onclick=joinNet()>Connect</button><span id=joinMsg></span></div>
+<p class=dim>If the new network does not work, the radar goes back to the old one by itself. While it switches, this page may stop responding: reconnect your phone to your home Wi-Fi and open <b>http://radar.local</b> (or the address on the radar's screen).</p></section>
+
+<section><h2>Firmware</h2>
+<p class=dim id=fwNow></p>
+<label>Firmware file (firmware.bin)<input id=fwfile type=file accept=".bin"></label>
+<div class=row><button onclick=fwUpload()>Install file</button><span id=fwMsg></span></div>
+<progress id=fwbar value=0 max=100 hidden style="width:100%"></progress>
+<label>Or a link<input id=fwurl type=text placeholder="https://..." autocapitalize=off autocorrect=off></label>
+<label>SHA-256 (optional)<input id=fwsha type=text maxlength=64 autocapitalize=off autocorrect=off></label>
+<div class=row><button onclick=fwUrl()>Install from link</button><button class=sec id=fwRevert onclick=fwRevert()>Previous firmware</button></div>
+<p class=dim>The radar installs into its spare slot and restarts. A new version must run for a minute with live data to be kept; if it fails to start, the radar goes back to the old one by itself. Do not switch it off while updating.</p></section>
+
+<section><h2>System</h2><div class=row><button class=sec onclick=restart()>Restart radar</button></div>
+<p class=dim>Version <span id=ver></span>. Based on mircemk's CrowPanel radar (GPL-3.0). Data: airplanes.live.</p></section>
+</main>
+<script>
+const $=s=>document.getElementById(s);let st=null;
+async function f(p,o){const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);try{return await fetch(p,Object.assign({signal:c.signal},o||{}))}finally{clearTimeout(t)}}
+async function api(p,o){const r=await f(p,o);if(r.status===401){$('boot').hidden=true;$('login').hidden=false;$('app').hidden=true;throw'login'}return r}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function login(){const r=await fetch('/api/login',{method:'POST',body:JSON.stringify({pin:$('pin').value})});if(r.ok){$('login').hidden=true;load()}else $('lmsg').textContent=(await r.json()).error||'Error'}
+function opts(el,list,val){el.innerHTML=list.map((t,i)=>`<option value=${i}>${t}</option>`).join('');el.value=val}
+async function load(){st=await(await api('/api/state')).json();$('boot').hidden=true;$('app').hidden=false;render()}
+function render(){const s=st.s,u=st.units,w=st.wifi;
+ $('top').textContent='v'+st.version;$('ver').textContent=st.version;
+ $('sNet').innerHTML=w.connected?`${w.ssid} <span class=dim>${w.rssi} dBm &middot; ${w.ip}</span>`:'<span class=bad>not connected</span>';
+ $('sAc').textContent=st.radar.dataOk?st.radar.aircraft:'no data';emRender(st.radar);$('sMem').textContent=st.heapKb+' KB';
+ $('bPause').textContent=st.radar.paused?'Resume':'Pause';
+ $('apNote').textContent=w.ap?'You are on the setup access point: pick your home network below.':'';
+ opts($('range'),u.ranges.map(v=>v+' '+u.dist[s.dist]),s.rangeStep);$('trail').value=s.trail;$('bri').value=s.brightness;$('nmode').value=s.nightMode;$('nbri').value=s.nightBright;$('diag').checked=s.showDiag;$('mapov').checked=s.mapOverlay;sdRender();fwRender();faRender();
+ opts($('theme'),st.themes,s.theme);
+ for(let i=0;i<5;i++)opts($('p'+i),st.swatches.map(c=>c.name),s.pal[i]);
+ $('uauto').checked=s.unitsAuto;opts($('dist'),u.dist,s.dist);opts($('alt'),u.alt,s.alt);opts($('spd'),u.spd,s.spd);$('c24').checked=s.clock24;
+ fillLoc(false);}
+async function set(o){await api('/api/set',{method:'POST',body:JSON.stringify(o)});await load()}
+function sdRender(){const sd=st.sd,s=st.s;if(!sd)return;
+ const names=['logging is off','no card','logging','card problem','ejected: safe to remove'];
+ $('sdNow').textContent=(sd.totalMB?(sd.totalMB/1024).toFixed(0)+' GB card, '+(sd.freeMB/1024).toFixed(1)+' GB free. ':'')+'Status: '+names[sd.state]+(sd.rows?'. Today: '+sd.rows+' rows, '+(sd.bytes/1048576).toFixed(2)+' MB':'')+(sd.dropped?'. Lost '+sd.dropped+' rows (card missing too long)':'');
+ $('sdlog').checked=s.sdLog;$('logsecs').value=s.logSecs;$('sdbtn').textContent=sd.state===4?'Mount card':'Eject card'}
+function faRender(){const a=st.fa;if(!a)return;$('fae').checked=a.enabled;$('fap').checked=a.photo;$('fat').checked=a.track;
+ $('fakey').placeholder=a.keySet?'saved (type to replace)':'not set';if(document.activeElement!==$('faem'))$('faem').value=a.email;
+ $('faStat').textContent='Last lookup: '+a.status+'. FlightAware calls this hour: '+a.calls+'.'}
+async function faSave(){const o={};const k=$('fakey').value.trim();if(k)o.faKey=k;o.faEmail=$('faem').value.trim();$('fakey').value='';await set(o);$('faMsg').innerHTML='<span class=ok>Saved</span>'}
+async function faClear(){if(!confirm('Remove the saved FlightAware key from the radar?'))return;await set({faKey:''});$('faMsg').textContent='Key removed'}
+async function faTest(){$('faMsg').textContent='Testing...';await api('/api/fa/test',{method:'POST'});
+ for(let i=0;i<20;i++){await sleep(1500);await load();const t=st.fa.test;if(t&&t!=='Testing...'){$('faMsg').innerHTML='<span class='+(t==='Key accepted'?'ok':'bad')+'>'+t+'</span>';return}}
+ $('faMsg').innerHTML='<span class=bad>No answer</span>'}
+function emRender(r){const e=$('emerg');e.hidden=!r.emergencies;if(r.emergencies)e.textContent='Emergency squawk: '+r.emergency+(r.emergencies>1?' (+'+(r.emergencies-1)+' more)':'')}
+function fwRender(){const f=st.fw;if(!f)return;
+ $('fwNow').textContent='Running '+st.version+' from '+f.slot+(f.state==='pending'?' (proving itself: it must run a minute with live data to be kept)':f.state==='valid'?' (confirmed)':'')+'.';
+ $('fwRevert').disabled=!f.canRevert}
+function fwBusy(on){['fwfile','fwurl','fwsha'].forEach(i=>$(i).disabled=on)}
+function fwUpload(){const f=$('fwfile').files[0];if(!f){$('fwMsg').textContent='Choose firmware.bin first';return}
+ if(!confirm('Install '+f.name+' ('+(f.size/1048576).toFixed(2)+' MB)? The radar restarts when it is done.'))return;
+ const fd=new FormData();fd.append('size',f.size);if($('fwsha').value)fd.append('sha256',$('fwsha').value.trim());fd.append('file',f,f.name);
+ const x=new XMLHttpRequest();x.open('POST','/api/ota/upload');$('fwbar').hidden=false;fwBusy(true);$('fwMsg').textContent='Uploading... do not close this page';
+ x.upload.onprogress=e=>{if(e.lengthComputable)$('fwbar').value=e.loaded*100/e.total};x.upload.onload=()=>{$('fwMsg').textContent='Uploaded. Checking and installing: the radar screen shows a plain fill for about 40 seconds. Keep this page open.'};
+ x.onload=()=>{fwBusy(false);let r={};try{r=JSON.parse(x.responseText)}catch(e){}
+  if(x.status===200){$('fwMsg').innerHTML='<span class=ok>Installed. The radar is restarting; this page works again in about 20 seconds.</span>';$('fwbar').value=100}
+  else if(x.status===401){$('fwMsg').innerHTML='<span class=bad>Please log in again</span>'}
+  else $('fwMsg').innerHTML='<span class=bad>'+(r.error||'Failed')+'. The radar is unchanged.</span>'};
+ x.onerror=()=>{fwBusy(false);$('fwMsg').innerHTML='<span class=bad>Connection lost during the upload. Check the radar; it keeps its old firmware unless the screen says it was installed.</span>'};
+ x.send(fd)}
+async function fwUrl(){const url=$('fwurl').value.trim();if(!url){$('fwMsg').textContent='Enter a link';return}
+ if(!confirm('Download and install from this link? The radar restarts when it is done.'))return;
+ const r=await api('/api/ota/url',{method:'POST',body:JSON.stringify({url:url,sha256:$('fwsha').value.trim()})});
+ if(!r.ok){$('fwMsg').innerHTML='<span class=bad>'+((await r.json()).error||'Failed')+'</span>';return}
+ $('fwbar').hidden=false;fwBusy(true);
+ for(let i=0;i<600;i++){await sleep(1500);try{const d=await(await f('/api/ota/status')).json();$('fwbar').value=d.pct;$('fwMsg').textContent=d.msg;
+   if(d.failed){fwBusy(false);$('fwMsg').innerHTML='<span class=bad>'+d.msg+'. The radar is unchanged.</span>';return}
+   if(!d.active&&d.pct>=100){$('fwMsg').innerHTML='<span class=ok>Installed. Restarting...</span>';return}}catch(e){$('fwMsg').innerHTML='<span class=ok>The radar is restarting; reload in about 20 seconds.</span>';return}}}
+async function fwRevert(){if(!confirm('Go back to the previous firmware now? The radar restarts.'))return;try{const r=await api('/api/ota/revert',{method:'POST'});if(!r.ok)$('fwMsg').innerHTML='<span class=bad>'+((await r.json()).error||'Failed')+'</span>';else $('fwMsg').textContent='Restarting...'}catch(e){}}
+function sdAct(){set({sdEject:st.sd.state!==4})}
+function pal(){set({pal:[0,1,2,3,4].map(i=>+$('p'+i).value)})}
+function pause(){set({paused:!st.radar.paused})}
+let geoLists=null,mapObj=null,mapMark=null,t1=0,t2=0;
+async function lists(){if(geoLists)return geoLists;const [c,z]=await Promise.all([api('/api/geo/countries').then(r=>r.json()),api('/api/geo/zones').then(r=>r.json())]);geoLists={c:c,z:z};
+ $('ccsel').innerHTML='<option value=auto>Automatic</option>'+c.map(x=>`<option value=${x[0]}>${x[1]} (${x[0]})</option>`).join('');
+ $('tzsel').innerHTML='<option value=auto>Automatic</option>'+z.map(x=>`<option>${x}</option>`).join('');return geoLists}
+async function fillLoc(force){const s=st.s;
+ $('locNow').innerHTML=`<b>${s.place}</b> &middot; ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)} &middot; ${s.countryName||s.country} &middot; ${s.tzName||s.tz}`;
+ if(!force&&document.activeElement&&['place','lat','lon','q'].includes(document.activeElement.id))return;
+ $('place').value=s.place;$('lat').value=s.lat;$('lon').value=s.lon;await lists();
+ $('ccsel').value=s.countryAuto?'auto':s.country;$('tzsel').value=s.tzAuto?'auto':(s.tzName||'auto');
+ $('ccsel').options[0].text='Automatic ('+(s.countryName||s.country)+')';$('tzsel').options[0].text='Automatic ('+(s.tzName||s.tz)+')'}
+function findSoon(){clearTimeout(t1);t1=setTimeout(find,250)}
+async function find(){const q=$('q').value.trim();if(q.length<2){$('hits').innerHTML='';return}
+ try{const r=await(await api('/api/geo/search?q='+encodeURIComponent(q))).json();
+  $('hits').innerHTML=r.map((p,i)=>`<button class=sec onclick=pick(${i})>${p.name}, ${p.country} <span class=dim>${p.zone}</span></button>`).join('')||'<p class=dim>No match</p>';window.hitList=r}catch(e){}}
+function pick(i){const p=window.hitList[i];$('place').value=p.name;setPos(p.lat,p.lon,true);$('hits').innerHTML='';$('q').value=''}
+function setPos(lat,lon,keepName){$('lat').value=(+lat).toFixed(5);$('lon').value=(+lon).toFixed(5);if(!keepName)$('place').value='';preview();
+ if(mapObj){mapMark.setLatLng([lat,lon]);mapObj.panTo([lat,lon])}}
+function previewSoon(){clearTimeout(t2);t2=setTimeout(preview,400)}
+async function preview(){const la=+$('lat').value,lo=+$('lon').value;if(!isFinite(la)||!isFinite(lo)||$('lat').value===''){return}
+ try{const p=await(await api(`/api/geo/lookup?lat=${la}&lon=${lo}`)).json();$('detect').textContent=`Nearest city: ${p.name}, ${p.country} (${p.distKm} km) - time zone ${p.zone}`}catch(e){}}
+function useMyLocation(){if(!navigator.geolocation){$('locMsg').textContent='This browser cannot provide a location';return}
+ $('locMsg').textContent='Asking for the location...';
+ navigator.geolocation.getCurrentPosition(p=>{setPos(p.coords.latitude,p.coords.longitude);$('locMsg').textContent='Got it (accuracy about '+Math.round(p.coords.accuracy)+' m). Press Save.'},
+  e=>{$('locMsg').textContent=(e.code===1?'Location was refused.':'No location available.')+(window.isSecureContext?'':' Some browsers only share it with https pages: use search or the map instead.')},{enableHighAccuracy:true,timeout:20000,maximumAge:60000})}
+function loadScript(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e)})}
+async function toggleMap(){const box=$('mapbox');box.hidden=!box.hidden;if(box.hidden||mapObj)return;
+ try{const l=document.createElement('link');l.rel='stylesheet';l.href='/leaflet.css';document.head.appendChild(l);await loadScript('/leaflet.js')}catch(e){$('locMsg').textContent='Could not load the map';return}
+ const c=[+$('lat').value||0,+$('lon').value||0];mapObj=L.map('map').setView(c,10);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap'}).addTo(mapObj);
+ mapMark=L.circleMarker(c,{radius:9,color:'#27e05a',weight:3,fillOpacity:.3}).addTo(mapObj);
+ mapObj.on('click',e=>setPos(e.latlng.lat,e.latlng.lng))}
+async function saveLoc(){const o={loc:{lat:+$('lat').value,lon:+$('lon').value,place:$('place').value}};
+ const cc=$('ccsel').value,tz=$('tzsel').value;o.country=cc==='auto'?'auto':cc;o.zone=tz==='auto'?'auto':tz;
+ await set(o);$('locMsg').textContent='Saved'}
+let scanned=false,found=[];
+async function scan(){$('scanMsg').textContent='Scanning...';
+ try{await api('/api/wifi/scan?start=1'+(scanned?'&fresh=1':''))}catch(e){if(e==='login')return}   // the radio hops channels during a scan: a lost answer is fine, keep polling
+ scanned=true;
+ for(let i=0;i<30;i++){await sleep(1000);
+  try{const d=await(await api('/api/wifi/scan')).json();
+   if(!d.scanning){found=d.nets;$('nets').innerHTML='<option value="">Choose a network ('+d.nets.length+' found)</option>'+d.nets.map((n,i)=>`<option value=${i}>${n.ssid.replace(/</g,'&lt;')}  (${n.rssi} dBm${n.secure?'':', open'})</option>`).join('');
+    $('scanMsg').textContent=d.nets.length+' found';return}}
+  catch(e){if(e==='login')return;$('scanMsg').textContent='Waiting for the radar...'}}
+ $('scanMsg').textContent='No answer. Reload the page and try again.'}
+function netPick(){const v=$('nets').value;if(v==='')return;const n=found[+v];$('ssid').value=n.ssid;$('openNote').textContent=n.secure?'':'Open network: leave the password empty.';$('wpass').value='';if(n.secure)$('wpass').focus()}
+async function joinNet(){const ssid=$('ssid').value;if(!ssid){$('joinMsg').textContent='Choose or type a network name';return}
+ $('joinMsg').innerHTML='<span class=dim>Connecting...</span>';
+ try{await api('/api/wifi/join',{method:'POST',body:JSON.stringify({ssid:ssid,pass:$('wpass').value})})}catch(e){return}
+ for(let i=0;i<40;i++){await sleep(1500);
+  try{const d=await(await f('/api/wifi/status')).json();
+   if(d.state==='ok'){$('joinMsg').innerHTML='<span class=ok>The radar is now on <b>'+d.ssid+'</b> ('+d.ip+').</span><br><span class=dim>Reconnect your phone to <b>'+d.ssid+'</b> (the radar'+"'"+'s setup Wi-Fi is switching off now), then open <a style=color:#27e05a href="http://radar.local/">http://radar.local</a> or http://'+d.ip+'</span>';load().catch(()=>{});return}
+   if(d.state==='failed'){$('joinMsg').innerHTML='<span class=bad>'+d.msg+'. Still on the old network.</span>';return}}catch(e){}}
+ $('joinMsg').innerHTML='<span class=dim>No answer. If you were on the setup network, reconnect your phone to your home Wi-Fi and open http://radar.local</span>'}
+async function restart(){if(confirm('Restart the radar?')){try{await api('/api/restart',{method:'POST'})}catch(e){}document.body.innerHTML='<p style=padding:20px>Restarting... reload in 20 seconds.</p>'}}
+async function status(){const d=await(await api('/api/state')).json(),w=d.wifi;
+ $('sNet').innerHTML=w.connected?`${w.ssid} <span class=dim>${w.rssi} dBm &middot; ${w.ip}</span>`:'<span class=bad>not connected</span>';
+ $('sAc').textContent=d.radar.dataOk?d.radar.aircraft:'no data';emRender(d.radar);$('sMem').textContent=d.heapKb+' KB';$('bPause').textContent=d.radar.paused?'Resume':'Pause'}
+load().catch(e=>{if(e!=='login')$('boot').innerHTML='Cannot reach the radar. <a href=/ style=color:#27e05a>Reload</a>'});setInterval(()=>{if(!$('app').hidden&&document.visibilityState==='visible')status().catch(()=>{})},5000);
+</script></body></html>

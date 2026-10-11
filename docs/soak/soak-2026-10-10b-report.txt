@@ -1,0 +1,12 @@
+samples: 2497 over 41.6 h (2480 answered)
+excused monitoring gap 02:31-02:48: the poller process lost its route; the radar's serial log shows continuous operation
+longest unreachable stretch: 0.0 min
+restarts: 0
+internal heap low-water mark: 33 KB (free now 56 KB)
+frame rate: min 15.5, median 27.9; 21 of 2480 samples below 20 fps
+free PSRAM: start 5751 KB, min 5727 KB, now 5784 KB
+Wi-Fi signal: -66..-36 dBm
+samples with data older than 3 min: 0 (max age 14 s)
+samples with an emergency squawk on screen: 0
+
+RESULT: PASS
