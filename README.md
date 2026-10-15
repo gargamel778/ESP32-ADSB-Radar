@@ -19,7 +19,7 @@ for the FlightAware and Planespotters services (made-up flight details, a drawn 
 - Vendor: VIEWE ([viewedisplay.com](https://viewedisplay.com)), on GitHub at **[github.com/VIEWESMART](https://github.com/VIEWESMART)**
 - This board's documentation, schematic and examples: **[VIEWESMART/UEDX80480070ESP32-7inch-Touch-Display](https://github.com/VIEWESMART/UEDX80480070ESP32-7inch-Touch-Display)**
 - Product page: [VIEWE ESP32 7-inch 800×480 RGB IPS display](https://viewedisplay.com/product/esp32-7-inch-800x480-rgb-ips-tft-display-touch-screen-arduino-lvgl-uart/)
-- Where to buy: one source is this [AliExpress listing](https://aliexpress.com/item/1005007714673111.html). Before ordering, check that the board is the model above (ESP32-S3-N16R8: 16 MB flash, 8 MB PSRAM): the firmware's two update slots need the 16 MB flash.
+- Where to buy: [AliExpress listing](https://aliexpress.com/item/1005007714673111.html) of this board (7-inch 800×480, 16 MB flash, 8 MB PSRAM).
 - **A 3D-printed stand / enclosure is coming soon.**
 
 The pin map, display timing and the display fix in this firmware are specific to this model. VIEWE sells other sizes under similar names (`UEDX…`); they have different pins and are **not** supported.
