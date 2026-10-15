@@ -27,4 +27,4 @@ The radar is a hobby appliance for a home network. This is what protects what, a
 - `tests/device_tests.py` exercises the access control, malformed and oversized requests, forged cookies and refusals of bad firmware on a real radar (results in [TESTING.md](TESTING.md)).
 
 ## Reporting a problem
-Open an issue without posting your PIN, API key or Wi-Fi details. For something sensitive, say so in the issue and ask for a private channel.
+For a vulnerability, use the repository's **Security** tab, *Report a vulnerability* (GitHub's private reporting), so that nothing is public before it is fixed. For anything else, open an issue, and never post your PIN, API key or Wi-Fi details in it.

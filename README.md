@@ -43,9 +43,9 @@ What was measured on this board (display clock, touch, PSRAM, SD, Wi-Fi) is in [
 
 ## Quick start
 1. Install [PlatformIO](https://platformio.org/install) (the command line is enough).
-2. `git clone` this repository, then `cp config/secrets.h.example config/secrets.h` (optional first-boot Wi-Fi and location) and
+2. `git clone https://github.com/gargamel778/ESP32-ADSB-Radar.git`, then `cp config/secrets.h.example config/secrets.h` (optional first-boot Wi-Fi and location) and
    `cp firmware/platformio.local.ini.example firmware/platformio.local.ini` (set the serial port).
-3. Connect the **USB-C port labelled UART**, then `cd firmware && pio run -t upload`. The **first build takes about 15 minutes** (it rebuilds the ESP32 libraries once with a display fix) and later ones about 20 seconds.
+3. Connect the **USB-C port labelled UART**, then `cd firmware && pio run -t upload`. The **first build takes about 15 minutes** (it rebuilds the ESP32 libraries once with a display fix) and later ones about 20 seconds. If the first build stops during the library stage (a `get_metavar` error is a known hiccup), run the same command again: it resumes.
 4. The radar starts, shows the setup screen, and opens the Wi-Fi `ADSB-Radar-XXXX`. Scan the QR code, pick your network, set your location. Aircraft appear within seconds.
 
 Details: [docs/BUILDING.md](docs/BUILDING.md). Using it: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
@@ -75,7 +75,7 @@ Details: [docs/BUILDING.md](docs/BUILDING.md). Using it: [docs/USER_GUIDE.md](do
 | `reference/original-mircemk/` | The CrowPanel sketch this project started from (GPL-3.0), unmodified, with attribution |
 
 ## Status
-Milestones 0 to 8 are complete and tested on the hardware; milestone 8 (hardening, night mode, emergency squawks, flight details) is implemented and has passed a 41-hour soak test (no restarts, no memory leak).
+Milestones 0 to 8 are complete and tested on the hardware; milestone 8 (hardening, night mode, emergency squawks, flight details) is implemented and passed a 41-hour soak test (no restarts, no memory leak) on the build before the last fixes; a new soak of the release build is pending.
 See [docs/TESTING.md](docs/TESTING.md) for what has been verified and what has not (notably: the FlightAware answers are tested against a stand-in server, not yet against a real key).
 
 ## Please be a good neighbour

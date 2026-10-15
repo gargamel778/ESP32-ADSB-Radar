@@ -40,8 +40,12 @@ def main():
     target = os.path.normpath(sys.argv[1]) if len(sys.argv) > 1 else os.path.normpath(os.path.join(ROOT, "..", "ESP32-ADSB-Radar-public"))
     if os.path.commonpath([target, ROOT]) == ROOT:
         sys.exit("the target must be outside the project folder")
-    if os.path.exists(target):
-        shutil.rmtree(target)
+    if os.path.exists(target):   # start from empty, but keep the repository's own history (.git): an export is a new snapshot, not a new repository
+        for name in os.listdir(target):
+            if name == ".git":
+                continue
+            full = os.path.join(target, name)
+            shutil.rmtree(full) if os.path.isdir(full) and not os.path.islink(full) else os.remove(full)
     pats = patterns()
     n = 0
     for d, dirs, files in os.walk(ROOT):

@@ -12,7 +12,7 @@
 
 ## First build
 ```
-git clone <this repository>
+git clone https://github.com/gargamel778/ESP32-ADSB-Radar.git
 cd ESP32-ADSB-Radar
 cp config/secrets.h.example config/secrets.h                        # optional: first-boot Wi-Fi name / password and location
 cp firmware/platformio.local.ini.example firmware/platformio.local.ini   # set the serial port of the radar
