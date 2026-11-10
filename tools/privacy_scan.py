@@ -73,7 +73,7 @@ def main():
                 if folder != ROOT:   # in the project itself these files are expected (and git-ignored); in an export they are a leak
                     findings.append((rel, 0, "file that must not be published", base))
                 continue
-        if rel.startswith(("tests/host/build", "firmware/.pio")):   # build output (git-ignored, never exported)
+        if rel.startswith(("tests/host/build", "firmware/.pio", "build/", "inputs/")):   # build output (git-ignored, never exported)
             continue
         ext = os.path.splitext(base)[1].lower()
         try:

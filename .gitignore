@@ -20,3 +20,7 @@ hardware-tests/diag/.dummy/
 dist/
 tests/host/build/
 __pycache__/
+
+# --- throwaway work (logs, renders, the CAD virtual environment): never published ---
+build/
+inputs/
